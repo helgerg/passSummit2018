@@ -1,0 +1,84 @@
+﻿//JSON
+REFERENCE ASSEMBLY [Newtonsoft.Json];
+REFERENCE ASSEMBLY [Microsoft.Analytics.Samples.Formats];
+
+//some tricks
+REFERENCE ASSEMBLY HafslundCommon;
+
+//Cognitive Text Extensions:
+REFERENCE ASSEMBLY [TextSentiment];
+REFERENCE ASSEMBLY [TextKeyPhrase];
+
+DECLARE EXTERNAL @TwitterMsg = "HafslundStrom/Sandbox/PassSummit2018/Demo2/Input/{TweetId}.json";
+
+@inTweets =
+    EXTRACT TweetId string,
+            createdAt DateTime,
+            favouritesCount int,
+            location string,
+            name string,
+            numberOfFollowers int,
+            retweetCount int,
+            text string,
+            userName string
+    FROM @TwitterMsg
+    USING new Microsoft.Analytics.Samples.Formats.Json.JsonExtractor();
+
+//clean text and ouput to csv
+@tweets =
+    SELECT TweetId,
+           createdAt,
+           HafslundCommon.Functions.cleanString(name) AS name,
+           HafslundCommon.Functions.cleanString(userName) AS userName,
+           HafslundCommon.Functions.cleanString(text) AS text,
+           retweetCount,
+           favouritesCount,
+           numberOfFollowers
+    FROM @inTweets;
+
+OUTPUT @tweets TO "HafslundStrom/Sandbox/PassSummit2018/Demo2/OutputTweets.csv"
+USING Outputters.Csv(outputHeader:true);
+
+//remote RT
+@inTweets =
+    SELECT *
+    FROM @inTweets
+    WHERE text.Substring(0, 2) != "RT";
+
+//Extract KeyPhrase from text
+@keyPhrase =
+    PROCESS @inTweets
+    PRODUCE
+    TweetId,
+    KeyPhrase SqlArray<string>
+    READONLY TweetId
+    USING new Cognition.Text.KeyPhraseProcessor(txtCol: "text");
+
+@keyPhrase =
+    SELECT TweetId,
+           T.KeyPhrase
+    FROM @keyPhrase
+         CROSS APPLY
+             EXPLODE (KeyPhrase) AS T(KeyPhrase);
+
+@keyPhrase =
+    SELECT *
+    FROM @keyPhrase
+    WHERE
+    KeyPhrase NOT IN("Donald", "Trump", "Donald Trump", "President Donald Trump", "President Trump");
+
+OUTPUT @keyPhrase TO "HafslundStrom/Sandbox/PassSummit2018/Demo2/OutputTextKeyPhrase.csv"
+USING Outputters.Csv(outputHeader:true);
+
+
+//SENTIMENT ANALYSIS
+@sentiment =
+    PROCESS @inTweets
+    PRODUCE TweetId,
+            Sentiment string,
+            Conf double
+    READONLY TweetId
+    USING new Cognition.Text.SentimentAnalyzer(txtCol: "text");
+
+OUTPUT @sentiment TO "HafslundStrom/Sandbox/PassSummit2018/Demo2/OutputTextSentiment.csv"
+USING Outputters.Csv(outputHeader:true);
