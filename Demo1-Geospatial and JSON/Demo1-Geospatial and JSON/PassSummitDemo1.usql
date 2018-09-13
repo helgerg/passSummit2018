@@ -1,0 +1,124 @@
+﻿REFERENCE ASSEMBLY [Newtonsoft.Json];
+REFERENCE ASSEMBLY [Microsoft.Analytics.Samples.Formats];
+REFERENCE SYSTEM ASSEMBLY [System.Xml];
+REFERENCE ASSEMBLY SqlSpatial;
+
+USING Geometry = Microsoft.SqlServer.Types.SqlGeometry;
+USING Geography = Microsoft.SqlServer.Types.SqlGeography;
+USING SqlChars = System.Data.SqlTypes.SqlChars;
+
+//data on Basic Statistical Units collected from Kartverket in geoJSON format
+DECLARE EXTERNAL @inputBaseData string = "HafslundStrom/Sandbox/PassSummit2018/Demo1/Basisdata_03_Oslo_25832_Grunnkretser_GEOJSON.geojson";
+
+//output some test details
+DECLARE EXTERNAL @outpolygons string = "HafslundStrom/Sandbox/PassSummit2018/Demo1/Polygon.csv";
+DECLARE EXTERNAL @outpoint string = "HafslundStrom/Sandbox/PassSummit2018/Demo1/Point.csv";
+
+//output
+DECLARE EXTERNAL @out string = "HafslundStrom/Sandbox/PassSummit2018/Demo1/test.csv";
+
+/*
+,"grunnkretser.grunnkrets":{
+	"type":"FeatureCollection",
+	"crs":{
+		"type":"name",
+		"properties":
+			{"name":"EPSG:25833"}
+		}
+	,"features":[
+		{
+		"type":"Feature",
+		"geometry": {
+			"type":"Polygon",
+			"coordinates":[[
+				[80979.3611506922,6476981.92384427],
+				[80966.0611509188,6476944.62384315],
+				[80929.3811515964,6476861.32383981],
+				[80905.271152036,6476804.36383765],
+				[80904.4811518157,6476716.25383861],
+				},
+			"properties": {
+				"objid":1,
+				"objtype":"Grunnkrets",
+				"grunnkretsnummer":"10011305",
+				"grunnkretsnavn":"Mestad-Høiekleiv",
+				"lokalid":"f7eb3e07-767c-444d-91df-07993810637b",
+				"navnerom":"http://skjema.geonorge.no/SOSI/produktspesifikasjon/StatEnheterGrunnkretser/1.5_20180115",
+				"versjonid":"1.5_20180115",
+				"datauttaksdato":"20180223131038",
+				"datafangstdato":null,
+				"oppdateringsdato":null,
+				"opphav":"Kartverket",
+				"kommunenummer":"1001"
+				}
+				}
+                */
+@in =
+    EXTRACT coordinates string,
+            grunnkretsnummer string,
+            grunnkretsnavn string
+    FROM @inputBaseData
+    USING new Microsoft.Analytics.Samples.Formats.Json.MultiLevelJsonExtractor(
+          "grunnkretser_grunnkrets.features[*].geometry", true,
+          "coordinates",
+          "properties.grunnkretsnummer",
+          "properties.grunnkretsnavn"
+          );
+
+//data clensing
+@in =
+    SELECT coordinates.Replace("\r\n", "").Replace(" ", "") AS coordinates,
+           //"POLYGON((" + coordinates.Replace(" ", "").Replace("],", "comma").Replace(",", " ").Replace("comma", ",").Replace("\r\n", "").Replace("[", "").Replace("]", "") + "))" AS polygon,
+           coordinates.Replace(" ", "").Replace("],", "comma").Replace(",", " ").Replace("comma", ",").Replace("\r\n", "").Replace("[", "").Replace("]", "")  AS polygon,
+           grunnkretsnummer,
+           grunnkretsnavn
+    FROM @in;
+
+//convert coordinates to latitude and longitude
+@in =
+    SELECT Demo1_Geospatial_and_JSON.Functions.ToLatLon(32, polygon) AS polygonLatLon,
+           grunnkretsnummer,
+           grunnkretsnavn
+    FROM @in;
+
+//select my own grunnkretsnavn
+@mortensrud =
+    SELECT *
+    FROM @in
+    WHERE grunnkretsnavn.ToLower() == "mortensrud";
+
+OUTPUT @mortensrud
+TO @outpolygons
+USING Outputters.Csv(outputHeader : true);
+
+//select my own meterpoint
+@testPoint =
+    SELECT (double) AddressLatitude AS AddressLatitude,
+           (double) AddressLongitude AS AddressLongitude
+    FROM MeterpointPII
+    WHERE
+    HAIMeterpointId == 354522;
+
+OUTPUT @testPoint
+TO @outpoint
+USING Outputters.Csv(outputHeader : true);
+
+@test =
+    SELECT grunnkretsnummer,
+           grunnkretsnavn,
+           Geography.STPolyFromText(new SqlChars("POLYGON((" + polygonLatLon + "))"), 4326).
+           STContains(
+           Geography.STPointFromText(new SqlChars("POINT(" + AddressLongitude + " " + AddressLatitude + ")"), 4326)
+           ).ToString() AS polygonTest
+    FROM @in AS i
+         CROSS JOIN
+             @testPoint AS t;
+
+@test =
+    SELECT *
+    FROM @test
+    WHERE polygonTest == "True";
+
+OUTPUT @test
+TO @out
+USING Outputters.Csv(outputHeader : true);
