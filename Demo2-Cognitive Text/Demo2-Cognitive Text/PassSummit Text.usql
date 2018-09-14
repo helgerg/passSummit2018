@@ -9,6 +9,7 @@ REFERENCE ASSEMBLY HafslundCommon;
 REFERENCE ASSEMBLY [TextSentiment];
 REFERENCE ASSEMBLY [TextKeyPhrase];
 
+/*
 DECLARE EXTERNAL @TwitterMsg = "HafslundStrom/Sandbox/PassSummit2018/Demo2/Input/{TweetId}.json";
 
 @inTweets =
@@ -23,6 +24,31 @@ DECLARE EXTERNAL @TwitterMsg = "HafslundStrom/Sandbox/PassSummit2018/Demo2/Input
             userName string
     FROM @TwitterMsg
     USING new Microsoft.Analytics.Samples.Formats.Json.JsonExtractor();
+    */
+
+DECLARE EXTERNAL @TwitterMsg = "HafslundStrom/Sandbox/PassSummit2018/Demo2/Tweets.json";
+
+@inTweets = 
+    EXTRACT jsonString string FROM @TwitterMsg USING Extractors.Tsv(quoting:false);
+
+@inTweets = SELECT Microsoft.Analytics.Samples.Formats.Json.JsonFunctions.JsonTuple(jsonString) AS rec FROM @inTweets;
+
+@inTweets =
+    SELECT rec["TweetId"] AS TweetId,
+           rec["createdAt"]AS createdAt,
+           rec["name"]AS name,
+           rec["userName"]AS userName,
+           rec["text"]AS text,
+           rec["retweetCount"]AS retweetCount,
+           rec["favouritesCount"]AS favouritesCount,
+           rec["numberOfFollowers"]AS numberOfFollowers
+    FROM @inTweets;
+
+@inTweets =
+    SELECT *
+    FROM @inTweets
+    WHERE text.Substring(0, 2) != "RT";
+
 
 //clean text and ouput to csv
 @tweets =
@@ -39,11 +65,6 @@ DECLARE EXTERNAL @TwitterMsg = "HafslundStrom/Sandbox/PassSummit2018/Demo2/Input
 OUTPUT @tweets TO "HafslundStrom/Sandbox/PassSummit2018/Demo2/OutputTweets.csv"
 USING Outputters.Csv(outputHeader:true);
 
-//remote RT
-@inTweets =
-    SELECT *
-    FROM @inTweets
-    WHERE text.Substring(0, 2) != "RT";
 
 //Extract KeyPhrase from text
 @keyPhrase =
