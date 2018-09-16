@@ -1,0 +1,94 @@
+﻿REFERENCE ASSEMBLY [ExtR];
+
+DEPLOY RESOURCE @"/usqlext/samples/R/base64enc.zip";
+
+DECLARE EXTERNAL @outputModel = "HafslundStrom/Sandbox/PassSummit2018/Demo4/Modelsummary.csv";
+
+@input =
+    EXTRACT [HAIMeterpointId] string,
+            [HAICustomerId] string,
+            [HAIContractIdStart] string,
+            [HAIContractIdEnd] string,
+            [Bydelsnr] string,
+            [Bydel] string,
+            [Delbydelsnummer_gammel] string,
+            [Delbydel_gammel] string,
+            [Delbydelsnummer] string,
+            [Delbydel] string,
+            [Grunnkretsnummer] string,
+            [Grunnkrets] string,
+            [StreetName] string,
+            [ZipCode] string,
+            [EstimatedAnnualConsumption] string,
+            [EstimatedAnnualConsumptionGroup] string,
+            [StartDate] string,
+            [EndDate] string,
+            [LifetimeDays] string,
+            [LifetimeGroup] string,
+            [MoverIn] string,
+            [MoverOut] string,
+            [CustomerAge] string,
+            [MovingRate] string,
+            [SalesChannel] string,
+            [AssumedHousingType] string,
+            [AssumedRoomNumber] string
+    FROM "HafslundStrom/SandboxMoverHackathon/Helge/MoversTrainFull2018H1.csv" 
+    USING Extractors.Csv(skipFirstNRows:1);
+
+@Data =
+    SELECT 1 AS Par,
+           EstimatedAnnualConsumptionGroup,
+           LifetimeGroup,
+           MovingRate,
+           MoverIn,
+           MoverOut,
+           CustomerAge,
+           SalesChannel,
+           AssumedHousingType,
+           AssumedRoomNumber
+    FROM @input;
+
+DECLARE @myRScript = @"
+library(RevoScaleR)
+
+data_train <- inputFromUSQL[, !(colnames(inputFromUSQL) %in% c(""Par""))]
+#select columns to include
+data_train <- data_train[, (colnames(data_train) %in% c(""EstimatedAnnualConsumptionGroup"", ""LifetimeGroup"", ""MovingRate"", ""MoverIn"", ""MoverOut"", ""CustomerAge"", ""SalesChannel"", ""AssumedHousingType"", ""AssumedRoomNumber""))]
+
+# Fill missing values
+data_train[ data_train == """" | data_train == "" "" | data_train == ""na"" | data_train == ""NA""] <- NA
+numcol <- sapply(data_train, is.numeric)
+data_train[,numcol][is.na(data_train[,numcol])] <- 0
+
+# Convert string columns to factors
+data_train <- as.data.frame(unclass(data_train))
+data_train$MoverOut <- as.factor(data_train$MoverOut)
+
+names <- colnames(data_train)[which(colnames(data_train) != ""MoverOut"")]
+equation <- paste(""MoverOut ~ "", paste(names, collapse = ""+"", sep=""""), sep="""")
+
+boosted_fit <- rxBTrees(formula = as.formula(equation),
+                        data = data_train,
+                        learningRate = 0.2,
+                        minSplit = 10,
+                        minBucket = 10,
+                        nTree = 100,
+                        seed = 5,
+                        lossFunction = ""bernoulli"")
+
+.libPaths(c(.libPaths(), getwd()))
+if (require(base64enc)==FALSE)
+{
+  unzip('base64enc.zip')
+  require(base64enc)
+}
+
+outputToUSQL <- data.frame(Model=base64encode(serialize(boosted_fit, NULL)), stringsAsFactors = FALSE)
+";
+
+@ModelCoefficients = REDUCE @Data ON Par
+PRODUCE Par int, Model byte[]
+READONLY Par
+USING new Extension.R.Reducer(command: @myRScript, rReturnType:"dataframe");
+
+OUTPUT @ModelCoefficients TO @outputModel USING Outputters.Tsv();

@@ -7,7 +7,7 @@ using System.IO;
 using System.Linq;
 using System.Text;
 
-namespace Demo1_Geospatial_and_JSON
+namespace Demo3_Geospatial_and_JSON
 {
     public class Functions
     {

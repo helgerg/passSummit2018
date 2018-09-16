@@ -1,0 +1,17 @@
+﻿REFERENCE ASSEMBLY ImageCommon;
+REFERENCE ASSEMBLY ImageTagging;
+REFERENCE ASSEMBLY ImageOutputter;
+
+@imgs =
+    EXTRACT img byte[]
+    FROM @"/HafslundStrom/Sandbox/PassSummit2018/Demo3/InputImages/15676512_256226028140669_5096756696281008422_o.jpg"
+    USING new Cognition.Vision.ImageExtractor();
+
+@imgs =
+    SELECT "doesThisWork" AS FileName,
+           img
+    FROM @imgs;
+
+OUTPUT @imgs
+TO @"/HafslundStrom/Sandbox/PassSummit2018/Demo3/test.jpg"
+USING new ImageOutputter.ImageOutputter();

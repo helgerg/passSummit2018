@@ -3,7 +3,7 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 15
 VisualStudioVersion = 15.0.27703.2035
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{182E2583-ECAD-465B-BB50-91101D7C24CE}") = "Demo1-Geospatial and JSON", "Demo1-Geospatial and JSON\Demo1-Geospatial and JSON.usqlproj", "{69037F48-59C3-40E3-A7C2-8B959E3D29D8}"
+Project("{182E2583-ECAD-465B-BB50-91101D7C24CE}") = "Demo 3 -Geospatial and JSON", "Demo1-Geospatial and JSON\Demo 3 -Geospatial and JSON.usqlproj", "{69037F48-59C3-40E3-A7C2-8B959E3D29D8}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

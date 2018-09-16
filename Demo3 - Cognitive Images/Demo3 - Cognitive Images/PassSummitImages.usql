@@ -1,0 +1,83 @@
+﻿REFERENCE ASSEMBLY ImageCommon;
+REFERENCE ASSEMBLY FaceSdk;
+REFERENCE ASSEMBLY ImageEmotion;
+REFERENCE ASSEMBLY ImageTagging;
+REFERENCE ASSEMBLY ImageOcr;
+
+@imgs =
+    EXTRACT FileName string, ImgData byte[]
+    FROM @"/HafslundStrom/Sandbox/PassSummit2018/Demo2/InputImages/{FileName}.jpg"
+    USING new Cognition.Vision.ImageExtractor();
+
+//find objects in images
+@objects =
+    PROCESS @imgs 
+    PRODUCE FileName string,
+            NumObjects int,
+            Tags SQL.MAP<string, float?>
+    READONLY FileName
+    USING new Cognition.Vision.ImageTagger();
+
+@objects =
+    SELECT FileName,
+           NumObjects,
+           r.Tag AS Tag,
+           r.Confidence AS Confidence
+    FROM @objects AS o
+         CROSS APPLY
+             EXPLODE(o.Tags) AS r(Tag, Confidence);
+
+OUTPUT @objects TO "HafslundStrom/PassSummit2018/Demo2/Imagetags.csv" USING Outputters.Csv(outputHeader:true);
+
+
+
+//extract emotions from faces
+@emotions =
+    EXTRACT FileName string, 
+        NumFaces int, 
+        FaceIndex int, 
+        RectX float, 
+        RectY float,  
+        Width float, 
+        Height float, 
+        Emotion string, 
+        Confidence float
+    FROM @"/HafslundStrom/Sandbox/PassSummit2018/Demo2/InputImages/{FileName}.jpg"
+    USING new Cognition.Vision.EmotionExtractor();
+
+OUTPUT @emotions TO "HafslundStrom/Sandbox/PassSummit2018/Demo2/ImageEmotions.csv" USING Outputters.Csv(outputHeader:true);
+
+//extract age and gender from faces
+@faces =
+    EXTRACT FileName string, 
+        NumFaces int, 
+        FaceIndex int, 
+        RectX float, 
+        RectY float, 
+        Width float, 
+        Height float, 
+        FaceAge int, 
+        FaceGender string
+    FROM @"/HafslundStrom/Sandbox/PassSummit2018/Demo2/InputImages/{FileName}.jpg"
+    USING new Cognition.Vision.FaceDetectionExtractor();
+
+OUTPUT @faces TO "HafslundStrom/Sandbox/PassSummit2018/Demo2/Imagefaces.csv" USING Outputters.Csv(outputHeader:true);
+
+@facesAndEmotions = 
+SELECT 
+a.FileName ?? b.FileName AS FileName,
+a.NumFaces,
+FaceAge,
+FaceGender,
+Emotion,
+Confidence AS EmotionConfidence
+FROM 
+@emotions AS a 
+FULL OUTER JOIN 
+@faces AS b 
+ON 
+a.FileName == b.FileName AND
+a.RectX == b.RectX AND
+a.RectY == b.RectY;
+
+OUTPUT @facesAndEmotions TO "HafslundStrom/Sandbox/PassSummit2018/Demo2/FacesAndEmotions.csv" USING Outputters.Csv(outputHeader:true);

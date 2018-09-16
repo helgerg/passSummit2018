@@ -8,14 +8,14 @@ USING Geography = Microsoft.SqlServer.Types.SqlGeography;
 USING SqlChars = System.Data.SqlTypes.SqlChars;
 
 //data on Basic Statistical Units collected from Kartverket in geoJSON format
-DECLARE EXTERNAL @inputBaseData string = "HafslundStrom/Sandbox/PassSummit2018/Demo1/Basisdata_03_Oslo_25832_Grunnkretser_GEOJSON.geojson";
+DECLARE EXTERNAL @inputBaseData string = "HafslundStrom/Sandbox/PassSummit2018/Demo3/Basisdata_03_Oslo_25832_Grunnkretser_GEOJSON.geojson";
 
 //output some test details
-DECLARE EXTERNAL @outpolygons string = "HafslundStrom/Sandbox/PassSummit2018/Demo1/Polygon.csv";
-DECLARE EXTERNAL @outpoint string = "HafslundStrom/Sandbox/PassSummit2018/Demo1/Point.csv";
+DECLARE EXTERNAL @outpolygons string = "HafslundStrom/Sandbox/PassSummit2018/Demo3/Polygon.csv";
+DECLARE EXTERNAL @outpoint string = "HafslundStrom/Sandbox/PassSummit2018/Demo3/Point.csv";
 
 //output
-DECLARE EXTERNAL @out string = "HafslundStrom/Sandbox/PassSummit2018/Demo1/test.csv";
+DECLARE EXTERNAL @out string = "HafslundStrom/Sandbox/PassSummit2018/Demo3/test.csv";
 
 /*
 ,"grunnkretser.grunnkrets":{
@@ -76,7 +76,7 @@ DECLARE EXTERNAL @out string = "HafslundStrom/Sandbox/PassSummit2018/Demo1/test.
 
 //convert coordinates to latitude and longitude
 @in =
-    SELECT Demo1_Geospatial_and_JSON.Functions.ToLatLon(32, polygon) AS polygonLatLon,
+    SELECT Demo3_Geospatial_and_JSON.Functions.ToLatLon(32, polygon) AS polygonLatLon,
            grunnkretsnummer,
            grunnkretsnavn
     FROM @in;

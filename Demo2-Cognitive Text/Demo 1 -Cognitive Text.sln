@@ -3,7 +3,7 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 15
 VisualStudioVersion = 15.0.27703.2035
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{182E2583-ECAD-465B-BB50-91101D7C24CE}") = "Demo2-Cognitive Text", "Demo2-Cognitive Text\Demo2-Cognitive Text.usqlproj", "{99C4F88F-ED68-4574-BB2D-4A2D88CC0165}"
+Project("{182E2583-ECAD-465B-BB50-91101D7C24CE}") = "Demo1-Cognitive Text", "Demo2-Cognitive Text\Demo1-Cognitive Text.usqlproj", "{99C4F88F-ED68-4574-BB2D-4A2D88CC0165}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
