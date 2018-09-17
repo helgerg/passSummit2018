@@ -27,7 +27,7 @@ REFERENCE ASSEMBLY ImageOcr;
          CROSS APPLY
              EXPLODE(o.Tags) AS r(Tag, Confidence);
 
-OUTPUT @objects TO "HafslundStrom/PassSummit2018/Demo2/Imagetags.csv" USING Outputters.Csv(outputHeader:true);
+OUTPUT @objects TO "HafslundStrom/Sandbox/PassSummit2018/Demo2/Imagetags.csv" USING Outputters.Csv(outputHeader:true);
 
 
 
