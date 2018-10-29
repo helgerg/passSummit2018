@@ -1,8 +1,12 @@
-﻿REFERENCE ASSEMBLY ImageCommon;
+﻿SET @@FeaturePreviews = "DataPartitionedOutput:on";
+
+REFERENCE ASSEMBLY ImageCommon;
 REFERENCE ASSEMBLY FaceSdk;
 REFERENCE ASSEMBLY ImageEmotion;
 REFERENCE ASSEMBLY ImageTagging;
 REFERENCE ASSEMBLY ImageOcr;
+
+REFERENCE ASSEMBLY ImageOutputter;
 
 @imgs =
     EXTRACT FileName string, ImgData byte[]
@@ -29,6 +33,45 @@ REFERENCE ASSEMBLY ImageOcr;
 
 OUTPUT @objects TO "HafslundStrom/Sandbox/PassSummit2018/Demo2/Imagetags.csv" USING Outputters.Csv(outputHeader:true);
 
+@filenames =
+    SELECT FileName,
+           ARRAY_AGG<string>(Tag) AS TagArray
+    FROM @objects
+    WHERE Confidence > 0.5
+    GROUP BY FileName;
+
+@filenames =
+    SELECT FileName,
+           string.Join("-", TagArray) AS tagString
+    FROM @filenames;
+
+@filenames =
+    SELECT FileName,
+           ROW_NUMBER() OVER(PARTITION BY tagString ORDER BY tagString DESC) AS RowNumberByTag,
+           tagString
+    FROM @filenames;
+
+@filenames = SELECT FileName,
+    CASE 
+    WHEN RowNumberByTag > 1
+    THEN tagString + "-" + RowNumberByTag.ToString()
+    ELSE tagString END AS tagString
+    FROM @filenames;
+
+@imgs =
+    SELECT ImgData,
+           tagString
+    FROM @imgs AS a
+         JOIN
+             @filenames AS b
+         ON a.FileName == b.FileName;
+  
+
+OUTPUT @imgs
+TO @"/HafslundStrom/Sandbox/PassSummit2018/Demo2/Output/{tagString}.jpg"
+USING new ImageOutputter.ImageOutputter();
+
+OUTPUT @filenames TO "HafslundStrom/Sandbox/PassSummit2018/Demo2/Imagefilenames.csv" USING Outputters.Csv(outputHeader:true);
 
 
 //extract emotions from faces

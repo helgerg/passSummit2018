@@ -20,7 +20,11 @@
     <OutputPath>bin\Release\</OutputPath>
   </PropertyGroup>
   <ItemGroup>
+    <Script Include="Demo1Fill.usql" />
     <Script Include="PassSummit Text.usql" />
+    <ScriptCode Include="Demo1Fill.usql.cs">
+      <DependentUpon>Demo1Fill.usql</DependentUpon>
+    </ScriptCode>
     <ScriptCode Include="PassSummit Text.usql.cs">
       <DependentUpon>PassSummit Text.usql</DependentUpon>
     </ScriptCode>
