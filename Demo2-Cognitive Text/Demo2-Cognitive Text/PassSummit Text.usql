@@ -7,10 +7,10 @@ REFERENCE ASSEMBLY [TextSentiment];
 REFERENCE ASSEMBLY [TextKeyPhrase];
 
 //input file
-DECLARE EXTERNAL @TwitterMsg = "HafslundStrom/Sandbox/PassSummit2018/Demo1/Input/Tweets.json";
+DECLARE EXTERNAL @TwitterMsg = "HafslundStrom/Sandbox/PassSummit2018/Demo1/Input/Tweets{id}.json";
 
 @inTweets = 
-    EXTRACT jsonString string FROM @TwitterMsg USING Extractors.Tsv(quoting:false);
+    EXTRACT jsonString string, id string FROM @TwitterMsg USING Extractors.Tsv(quoting:false);
 
 @inTweets = SELECT Microsoft.Analytics.Samples.Formats.Json.JsonFunctions.JsonTuple(jsonString) AS rec FROM @inTweets;
 
