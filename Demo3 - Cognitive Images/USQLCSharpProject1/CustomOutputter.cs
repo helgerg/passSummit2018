@@ -18,15 +18,13 @@ namespace ImageOutputter
     {
         public override void Output(IRow input, IUnstructuredWriter output)
         {
-            var fileName = input.Get<string>("fileName");
-            var image = input.Get<object>("img");
+            var image = input.Get<object>(0);
             
             byte[] imageArray = (byte[])image;
             using (MemoryStream ms = new MemoryStream(imageArray))
             {
                 var img = Image.FromStream(ms);
-                //img.Save(output.BaseStream, ImageFormat.Jpeg);
-                img.Save(fileName, ImageFormat.Jpeg);
+                img.Save(output.BaseStream, ImageFormat.Jpeg);
             }
         }
     }

@@ -1,10 +1,13 @@
-﻿REFERENCE ASSEMBLY ImageCommon;
+﻿//we use this to create partitioned output
+SET @@FeaturePreviews = "DataPartitionedOutput:on";
+
+REFERENCE ASSEMBLY ImageCommon;
 REFERENCE ASSEMBLY ImageTagging;
 REFERENCE ASSEMBLY ImageOutputter;
 
 @imgs =
     EXTRACT img byte[]
-    FROM @"/HafslundStrom/Sandbox/PassSummit2018/Demo3/InputImages/15676512_256226028140669_5096756696281008422_o.jpg"
+    FROM @"/HafslundStrom/Sandbox/PassSummit2018/Demo2/InputImages/15676512_256226028140669_5096756696281008422_o.jpg"
     USING new Cognition.Vision.ImageExtractor();
 
 @imgs =
@@ -13,5 +16,5 @@ REFERENCE ASSEMBLY ImageOutputter;
     FROM @imgs;
 
 OUTPUT @imgs
-TO @"/HafslundStrom/Sandbox/PassSummit2018/Demo3/test.jpg"
+TO @"/HafslundStrom/Sandbox/PassSummit2018/Demo2/{FileName}.jpg"
 USING new ImageOutputter.ImageOutputter();

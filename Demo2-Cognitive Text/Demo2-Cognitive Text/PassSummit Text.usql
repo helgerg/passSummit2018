@@ -50,6 +50,7 @@ USING Outputters.Csv(outputHeader:true);
          CROSS APPLY
              EXPLODE (KeyPhrase) AS T(KeyPhrase);
 
+//KeyPhraseExtraction
 @keyPhrase =
     SELECT *
     FROM @keyPhrase
@@ -62,6 +63,12 @@ USING Outputters.Csv(outputHeader:true);
     "president trump",
     "realdonaldtrump",
     "president",
+    "president donald",
+    "america",
+    "people",
+    "country",
+    "time",
+    "world",
     "amp");
 
 OUTPUT @keyPhrase TO "HafslundStrom/Sandbox/PassSummit2018/Demo1/OutputTextKeyPhrase.csv"
